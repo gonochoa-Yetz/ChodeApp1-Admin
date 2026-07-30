@@ -99,6 +99,9 @@ export interface ParticipantDetail {
   paidInstallments: number;
   displayStatus: ParticipantDisplayStatus;
   createdAt: string;
+  montoTotal: number;
+  montoPagado: number;
+  montoAdeudado: number;
 }
 
 function computeDisplayStatus(
@@ -129,17 +132,22 @@ function computeDisplayStatus(
 }
 
 export async function getEventParticipantsAdmin(eventId: string): Promise<ServiceResult<ParticipantDetail[]>> {
-  const [{ data: attendances, error: attErr }, { data: installments, error: instErr }] = await Promise.all([
-    supabase
-      .from('event_attendances')
-      .select('*, users:user_id (nombre, apellido, email)')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: true }),
-    supabase.from('event_installments').select('*').eq('event_id', eventId),
-  ]);
+  const [{ data: eventRow, error: eventErr }, { data: attendances, error: attErr }, { data: installments, error: instErr }] =
+    await Promise.all([
+      supabase.from('events').select('precio').eq('id', eventId).single(),
+      supabase
+        .from('event_attendances')
+        .select('*, users:user_id (nombre, apellido, email)')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: true }),
+      supabase.from('event_installments').select('*').eq('event_id', eventId),
+    ]);
 
+  if (eventErr) return { data: null, error: eventErr.message };
   if (attErr) return { data: null, error: attErr.message };
   if (instErr) return { data: null, error: instErr.message };
+
+  const precioEvento = (eventRow as { precio: number } | null)?.precio ?? 0;
 
   const installmentsByUser: Record<string, EventInstallment[]> = {};
   for (const inst of (installments ?? []) as EventInstallment[]) {
@@ -151,6 +159,13 @@ export async function getEventParticipantsAdmin(eventId: string): Promise<Servic
 
   const result: ParticipantDetail[] = ((attendances ?? []) as AttendanceRow[]).map((att) => {
     const userInsts = installmentsByUser[att.user_id] ?? [];
+    const montoTotal = userInsts.length > 0 ? userInsts.reduce((sum, i) => sum + i.amount, 0) : precioEvento;
+    const montoPagado =
+      userInsts.length > 0
+        ? userInsts.filter((i) => i.status === 'aprobado').reduce((sum, i) => sum + i.amount, 0)
+        : att.estado_pago === 'aprobado'
+          ? precioEvento
+          : 0;
     return {
       attendanceId: att.id,
       userId: att.user_id,
@@ -164,6 +179,9 @@ export async function getEventParticipantsAdmin(eventId: string): Promise<Servic
       paidInstallments: userInsts.filter((i) => i.status === 'aprobado').length,
       displayStatus: computeDisplayStatus(att.estado_pago, userInsts),
       createdAt: att.created_at,
+      montoTotal,
+      montoPagado,
+      montoAdeudado: montoTotal - montoPagado,
     };
   });
 

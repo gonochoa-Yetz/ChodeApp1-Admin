@@ -10,6 +10,7 @@ import {
   type ParticipantDetail,
 } from '../../services/eventAdminService';
 import { searchUsers } from '../../services/userService';
+import { exportToCsv, slugify } from '../../utils/csvExport';
 import type { EventRow } from '../../types/event';
 import type { User } from '../../types/user';
 
@@ -104,6 +105,24 @@ export function GestionarEvento() {
     loadData();
   }
 
+  function handleExport() {
+    if (!event) return;
+    const headers = ['Nombre', 'Apellido', 'Email', 'Estado', 'Cuotas pagadas', 'Cuotas totales', 'Monto pagado', 'Monto adeudado'];
+    const rows = filtered.map((p) => [
+      p.nombre,
+      p.apellido,
+      p.email,
+      p.displayStatus,
+      p.paidInstallments,
+      p.totalInstallments,
+      p.montoPagado,
+      p.montoAdeudado,
+    ]);
+    const filtroSlug = statusFilter ? slugify(statusFilter) : 'todos';
+    const fecha = new Date().toISOString().slice(0, 10);
+    exportToCsv(`${slugify(event.nombre)}_${filtroSlug}_${fecha}.csv`, headers, rows);
+  }
+
   if (loading) return <Loader />;
   if (!event) return <Text c="dimmed">No se pudo cargar el evento.</Text>;
 
@@ -134,6 +153,9 @@ export function GestionarEvento() {
           clearable
           w={220}
         />
+        <Button variant="light" onClick={handleExport} disabled={filtered.length === 0}>
+          Exportar CSV
+        </Button>
       </Group>
 
       <Table striped highlightOnHover verticalSpacing="sm">
@@ -143,13 +165,14 @@ export function GestionarEvento() {
             <Table.Th>Email</Table.Th>
             <Table.Th>Estado</Table.Th>
             <Table.Th>Cuotas</Table.Th>
+            <Table.Th>Adeudado</Table.Th>
             <Table.Th></Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {filtered.length === 0 && (
             <Table.Tr>
-              <Table.Td colSpan={5}>
+              <Table.Td colSpan={6}>
                 <Text c="dimmed" ta="center" py="md">
                   No hay participantes.
                 </Text>
@@ -168,6 +191,7 @@ export function GestionarEvento() {
                 </Badge>
               </Table.Td>
               <Table.Td>{p.hasInstallments ? `${p.paidInstallments}/${p.totalInstallments}` : '—'}</Table.Td>
+              <Table.Td>{p.montoAdeudado > 0 ? `$${p.montoAdeudado.toLocaleString('es-AR')}` : '—'}</Table.Td>
               <Table.Td>
                 <Button size="xs" color="red" variant="outline" onClick={() => setRemoveTarget(p)}>
                   Quitar
