@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Badge,
   Button,
@@ -12,6 +12,7 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -19,7 +20,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getAdminDivisionGrupos, getGrupoTree, setAdminDivisionGrupos } from '../../services/groupService';
 import { updateMembership, updateMembershipGrupo } from '../../services/membershipService';
 import { getMarketBanned, setMarketBanned } from '../../services/marketAdminService';
-import { getRecentPayments, getSocioDetalle, updateUserRole, type RecentPayment, type SocioDetalle } from '../../services/socioService';
+import {
+  deleteSocio,
+  getRecentPayments,
+  getSocioDetalle,
+  updateUserRole,
+  type RecentPayment,
+  type SocioDetalle,
+} from '../../services/socioService';
 import { ESTADO_OPTIONS, TIPO_MEMBRESIA_OPTIONS } from '../../types/membership';
 import type { UserRol } from '../../types/user';
 import type { DeporteWithGrupos } from '../../types/groups';
@@ -38,6 +46,7 @@ const ROLE_LABEL: Record<UserRol, string> = {
 
 export function DetalleSocio() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const [socio, setSocio] = useState<SocioDetalle | null>(null);
   const [payments, setPayments] = useState<RecentPayment[]>([]);
@@ -49,6 +58,9 @@ export function DetalleSocio() {
   const [pendingRole, setPendingRole] = useState<UserRol | null>(null);
   const [marketBanned, setMarketBannedState] = useState(false);
   const [banTogglePending, setBanTogglePending] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletePending, setDeletePending] = useState(false);
 
   async function loadSocio() {
     if (!id) return;
@@ -157,6 +169,21 @@ export function DetalleSocio() {
     else notifications.show({ color: 'green', message: 'Permisos de grupos actualizados.' });
   }
 
+  const fullName = `${socio.nombre} ${socio.apellido}`;
+
+  async function confirmDeleteSocio() {
+    if (!socio || deleteConfirmText.trim() !== fullName) return;
+    setDeletePending(true);
+    const { error } = await deleteSocio(socio.id);
+    setDeletePending(false);
+    if (error) {
+      notifications.show({ color: 'red', title: 'Error', message: error });
+      return;
+    }
+    notifications.show({ color: 'green', message: `${fullName} fue eliminado permanentemente.` });
+    navigate('/socios');
+  }
+
   return (
     <Stack maw={640}>
       <Stack gap={0}>
@@ -190,6 +217,18 @@ export function DetalleSocio() {
             onChange={handleGrupoChange}
             disabled={!selectedDeporteId}
             placeholder={selectedDeporteId ? 'Seleccionar grupo' : 'Elegí un deporte primero'}
+          />
+          <NumberInput
+            label="N° de socio"
+            placeholder="Sin asignar"
+            value={membership?.numero_socio ?? undefined}
+            onBlur={(e) => {
+              const raw = e.currentTarget.value.trim();
+              const n = raw === '' ? null : parseInt(raw, 10);
+              if (n === null || !isNaN(n)) {
+                if (n !== (membership?.numero_socio ?? null)) handleMembershipField({ numero_socio: n });
+              }
+            }}
           />
           <NumberInput
             label="Camada (año)"
@@ -281,6 +320,63 @@ export function DetalleSocio() {
           </Stack>
         )}
       </Card>
+
+      {isSuperAdmin && (
+        <Card withBorder style={{ borderColor: 'var(--mantine-color-red-6)' }}>
+          <Title order={4} mb="sm" c="red">
+            Zona de peligro
+          </Title>
+          <Group justify="space-between">
+            <Stack gap={0}>
+              <Text size="sm">Eliminar socio</Text>
+              <Text size="xs" c="dimmed">
+                Borra la cuenta y todo su historial (eventos, pagos, Market, mensajes). No se puede deshacer.
+              </Text>
+            </Stack>
+            <Button
+              size="xs"
+              color="red"
+              variant="outline"
+              onClick={() => {
+                setDeleteConfirmText('');
+                setDeleteModalOpen(true);
+              }}
+            >
+              Eliminar socio
+            </Button>
+          </Group>
+        </Card>
+      )}
+
+      <Modal
+        opened={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title="Eliminar socio permanentemente"
+      >
+        <Stack>
+          <Text size="sm">
+            Esto elimina a <strong>{fullName}</strong> y todo su historial: eventos, cuotas, publicaciones y mensajes del
+            Market, notificaciones. <strong>No se puede deshacer.</strong>
+          </Text>
+          <Text size="sm">
+            Para confirmar, escribí el nombre completo: <strong>{fullName}</strong>
+          </Text>
+          <TextInput value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.currentTarget.value)} placeholder={fullName} />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              color="red"
+              loading={deletePending}
+              disabled={deleteConfirmText.trim() !== fullName}
+              onClick={confirmDeleteSocio}
+            >
+              Eliminar definitivamente
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       <Modal opened={!!pendingRole} onClose={() => setPendingRole(null)} title="Confirmar cambio de rol">
         <Stack>

@@ -79,3 +79,9 @@ export async function updateUserRole(userId: string, role: UserRol): Promise<Ser
   if (error) return { data: null, error: error.message };
   return { data: null, error: null };
 }
+
+export async function deleteSocio(userId: string): Promise<ServiceResult<null>> {
+  const { error } = await supabase.rpc('delete_socio', { target_user_id: userId });
+  if (error) return { data: null, error: error.message };
+  return { data: null, error: null };
+}
