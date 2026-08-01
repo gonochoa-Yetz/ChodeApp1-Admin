@@ -6,14 +6,15 @@ import { EnvBadge } from '../components/EnvBadge';
 
 const NAV_ITEMS = [
   { to: '/pagos', label: 'Validar pagos' },
-  { to: '/socios', label: 'Socios' },
   { to: '/eventos', label: 'Eventos' },
+  { to: '/ventas', label: 'Ventas del club' },
   { to: '/notificaciones', label: 'Notificaciones' },
   { to: '/fixture', label: 'Fixture y tabla' },
   { to: '/gym', label: 'Rutinas de gym' },
 ];
 
 const SUPER_ADMIN_NAV_ITEMS = [
+  { to: '/socios', label: 'Socios' },
   { to: '/grupos', label: 'Grupos' },
   { to: '/grupos/clubes', label: 'Conexiones de clubes' },
   { to: '/market', label: 'Moderación del Market' },
