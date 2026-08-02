@@ -169,7 +169,7 @@ export function DetalleSocio() {
     else notifications.show({ color: 'green', message: 'Permisos de grupos actualizados.' });
   }
 
-  const fullName = `${socio.nombre} ${socio.apellido}`;
+  const fullName = `${socio.nombre} ${socio.apellido}`.trim();
 
   async function confirmDeleteSocio() {
     if (!socio || deleteConfirmText.trim() !== fullName) return;
