@@ -18,7 +18,7 @@ import {
 import { notifications } from '@mantine/notifications';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAdminDivisionGrupos, getGrupoTree, setAdminDivisionGrupos } from '../../services/groupService';
-import { updateMembership, updateMembershipGrupo } from '../../services/membershipService';
+import { createMembership, updateMembership, updateMembershipGrupo } from '../../services/membershipService';
 import { getMarketBanned, setMarketBanned } from '../../services/marketAdminService';
 import {
   deleteSocio,
@@ -69,6 +69,7 @@ export function DetalleSocio() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletePending, setDeletePending] = useState(false);
+  const [creatingMembership, setCreatingMembership] = useState(false);
 
   async function loadSocio() {
     if (!id) return;
@@ -118,6 +119,19 @@ export function DetalleSocio() {
     setSaving(false);
     if (error) notifications.show({ color: 'red', title: 'Error', message: error });
     else loadSocio();
+  }
+
+  async function handleCreateMembership() {
+    if (!socio) return;
+    setCreatingMembership(true);
+    const { error } = await createMembership(socio.id, profile?.club_id ?? null);
+    setCreatingMembership(false);
+    if (error) {
+      notifications.show({ color: 'red', title: 'Error', message: error });
+      return;
+    }
+    notifications.show({ color: 'green', message: 'Membresía creada — ya podés cargar sus datos.' });
+    loadSocio();
   }
 
   async function handleGrupoChange(grupoId: string | null) {
@@ -210,6 +224,16 @@ export function DetalleSocio() {
         <Title order={4} mb="sm">
           Datos de membresía
         </Title>
+        {!membership ? (
+          <Stack gap="sm" align="flex-start">
+            <Text size="sm" c="dimmed">
+              Este socio todavía no tiene una membresía cargada — los campos de abajo no van a guardar nada hasta que crees una.
+            </Text>
+            <Button size="xs" loading={creatingMembership} onClick={handleCreateMembership}>
+              Crear membresía
+            </Button>
+          </Stack>
+        ) : (
         <Stack gap="sm">
           <Select
             label="Deporte"
@@ -261,6 +285,7 @@ export function DetalleSocio() {
             onChange={(v) => v && handleMembershipField({ estado: v })}
           />
         </Stack>
+        )}
       </Card>
 
       <Card withBorder>

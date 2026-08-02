@@ -17,6 +17,17 @@ export async function updateMembership(
   return { data: data as Membership, error: null };
 }
 
+export async function createMembership(userId: string, clubId: string | null): Promise<ServiceResult<Membership>> {
+  const { data, error } = await supabase
+    .from('memberships')
+    .insert({ user_id: userId, club_id: clubId })
+    .select('*')
+    .single();
+
+  if (error) return { data: null, error: error.message };
+  return { data: data as Membership, error: null };
+}
+
 export async function updateMembershipGrupo(
   membershipId: string,
   grupoId: string | null
