@@ -38,6 +38,14 @@ const ROLE_OPTIONS: { label: string; value: UserRol }[] = [
   { label: 'Super Admin', value: 'super_admin' },
 ];
 
+// Ignora acentos al comparar el nombre de confirmación de borrado — un socio
+// puede tipear "Agustin Diaz" sin tildes y debe matchear igual.
+const COMBINING_DIACRITICS = new RegExp('[̀-ͯ]', 'g');
+
+function normalizeForConfirm(value: string): string {
+  return value.trim().normalize('NFD').replace(COMBINING_DIACRITICS, '');
+}
+
 const ROLE_LABEL: Record<UserRol, string> = {
   user: 'Socio',
   admin_division: 'Admin de División',
@@ -171,8 +179,10 @@ export function DetalleSocio() {
 
   const fullName = `${socio.nombre} ${socio.apellido}`.trim();
 
+  const deleteConfirmMatches = normalizeForConfirm(deleteConfirmText) === normalizeForConfirm(fullName);
+
   async function confirmDeleteSocio() {
-    if (!socio || deleteConfirmText.trim() !== fullName) return;
+    if (!socio || !deleteConfirmMatches) return;
     setDeletePending(true);
     const { error } = await deleteSocio(socio.id);
     setDeletePending(false);
@@ -369,7 +379,7 @@ export function DetalleSocio() {
             <Button
               color="red"
               loading={deletePending}
-              disabled={deleteConfirmText.trim() !== fullName}
+              disabled={!deleteConfirmMatches}
               onClick={confirmDeleteSocio}
             >
               Eliminar definitivamente
