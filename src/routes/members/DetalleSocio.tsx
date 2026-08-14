@@ -215,6 +215,9 @@ export function DetalleSocio() {
           {socio.nombre} {socio.apellido}
         </Title>
         <Text c="dimmed" size="sm">
+          {socio.email}
+        </Text>
+        <Text c="dimmed" size="sm">
           {socio.nickname ? `@${socio.nickname} · ` : ''}
           {membership?.numero_socio ? `#${String(membership.numero_socio).padStart(4, '0')}` : 'Sin N° de socio'}
         </Text>
