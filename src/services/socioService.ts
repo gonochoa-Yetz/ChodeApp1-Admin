@@ -82,6 +82,12 @@ export async function updateUserRole(userId: string, role: UserRol): Promise<Ser
   return { data: null, error: null };
 }
 
+export async function updateSocioIdentity(userId: string, nombre: string, apellido: string): Promise<ServiceResult<null>> {
+  const { error } = await supabase.from('users').update({ nombre: nombre.trim(), apellido: apellido.trim() }).eq('id', userId);
+  if (error) return { data: null, error: error.message };
+  return { data: null, error: null };
+}
+
 export async function deleteSocio(userId: string): Promise<ServiceResult<null>> {
   const { error } = await supabase.rpc('delete_socio', { target_user_id: userId });
   if (error) return { data: null, error: error.message };

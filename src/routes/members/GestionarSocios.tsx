@@ -202,11 +202,12 @@ export function GestionarSocios() {
             const membership = s.memberships?.[0];
             const estado = membership?.estado ?? 'pendiente';
             const socioNum = membership?.numero_socio ? `#${String(membership.numero_socio).padStart(4, '0')}` : '—';
+            const sinNombre = !s.nombre?.trim() && !s.apellido?.trim();
             return (
               <Table.Tr key={s.id} style={{ cursor: 'pointer' }}>
                 <Table.Td>
-                  <Text component={Link} to={`/socios/${s.id}`} fw={600} c="inherit" td="none">
-                    {s.nombre} {s.apellido}
+                  <Text component={Link} to={`/socios/${s.id}`} fw={600} c={sinNombre ? 'dimmed' : 'inherit'} td="none" fs={sinNombre ? 'italic' : undefined}>
+                    {sinNombre ? 'Sin nombre cargado' : `${s.nombre} ${s.apellido}`}
                   </Text>
                   {s.nickname && (
                     <Text size="xs" c="dimmed">

@@ -24,6 +24,7 @@ import {
   deleteSocio,
   getRecentPayments,
   getSocioDetalle,
+  updateSocioIdentity,
   updateUserRole,
   type RecentPayment,
   type SocioDetalle,
@@ -70,6 +71,9 @@ export function DetalleSocio() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletePending, setDeletePending] = useState(false);
   const [creatingMembership, setCreatingMembership] = useState(false);
+  const [nombreDraft, setNombreDraft] = useState('');
+  const [apellidoDraft, setApellidoDraft] = useState('');
+  const [savingIdentity, setSavingIdentity] = useState(false);
 
   async function loadSocio() {
     if (!id) return;
@@ -81,6 +85,8 @@ export function DetalleSocio() {
     ]);
     if (socioData) {
       setSocio(socioData);
+      setNombreDraft(socioData.nombre ?? '');
+      setApellidoDraft(socioData.apellido ?? '');
       const mem = socioData.memberships?.[0];
       if (mem?.deporte_id) setSelectedDeporteId(mem.deporte_id);
     }
@@ -119,6 +125,26 @@ export function DetalleSocio() {
     setSaving(false);
     if (error) notifications.show({ color: 'red', title: 'Error', message: error });
     else loadSocio();
+  }
+
+  async function handleSaveIdentity() {
+    if (!socio) return;
+    const nombre = nombreDraft.trim();
+    const apellido = apellidoDraft.trim();
+    if (!nombre || !apellido) {
+      notifications.show({ color: 'red', title: 'Error', message: 'Nombre y apellido no pueden quedar vacíos.' });
+      return;
+    }
+    if (nombre === socio.nombre && apellido === socio.apellido) return;
+    setSavingIdentity(true);
+    const { error } = await updateSocioIdentity(socio.id, nombre, apellido);
+    setSavingIdentity(false);
+    if (error) {
+      notifications.show({ color: 'red', title: 'Error', message: error });
+      return;
+    }
+    notifications.show({ color: 'green', message: 'Nombre actualizado.' });
+    loadSocio();
   }
 
   async function handleCreateMembership() {
@@ -208,20 +234,44 @@ export function DetalleSocio() {
     navigate('/socios');
   }
 
+  const sinNombre = !socio.nombre?.trim() && !socio.apellido?.trim();
+
   return (
     <Stack maw={640}>
       <Stack gap={0}>
-        <Title order={2}>
-          {socio.nombre} {socio.apellido}
-        </Title>
-        <Text c="dimmed" size="sm">
-          {socio.email}
-        </Text>
+        <Title order={2}>{sinNombre ? socio.email : `${socio.nombre} ${socio.apellido}`}</Title>
+        {!sinNombre && (
+          <Text c="dimmed" size="sm">
+            {socio.email}
+          </Text>
+        )}
         <Text c="dimmed" size="sm">
           {socio.nickname ? `@${socio.nickname} · ` : ''}
           {membership?.numero_socio ? `#${String(membership.numero_socio).padStart(4, '0')}` : 'Sin N° de socio'}
         </Text>
       </Stack>
+
+      <Card withBorder>
+        <Title order={4} mb="sm">
+          Nombre y apellido
+        </Title>
+        <Group align="flex-end">
+          <TextInput label="Nombre" value={nombreDraft} onChange={(e) => setNombreDraft(e.currentTarget.value)} style={{ flex: 1 }} />
+          <TextInput
+            label="Apellido"
+            value={apellidoDraft}
+            onChange={(e) => setApellidoDraft(e.currentTarget.value)}
+            style={{ flex: 1 }}
+          />
+          <Button
+            loading={savingIdentity}
+            disabled={nombreDraft.trim() === socio.nombre && apellidoDraft.trim() === socio.apellido}
+            onClick={handleSaveIdentity}
+          >
+            Guardar
+          </Button>
+        </Group>
+      </Card>
 
       <Card withBorder>
         <Title order={4} mb="sm">
