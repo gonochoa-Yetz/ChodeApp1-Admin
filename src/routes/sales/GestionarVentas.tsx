@@ -165,8 +165,22 @@ export function GestionarVentas() {
             return (
               <Table.Tr key={s.id}>
                 <Table.Td>{fullName(s)}</Table.Td>
-                <Table.Td>{s.producto_nombre}</Table.Td>
-                <Table.Td>${s.precio.toLocaleString('es-AR')}</Table.Td>
+                <Table.Td>
+                  {s.producto_nombre}
+                  {s.cantidad > 1 && (
+                    <Text size="xs" c="dimmed">
+                      ×{s.cantidad}
+                    </Text>
+                  )}
+                </Table.Td>
+                <Table.Td>
+                  ${s.precio.toLocaleString('es-AR')}
+                  {s.cantidad > 1 && (
+                    <Text size="xs" c="dimmed">
+                      ${s.precio_unitario.toLocaleString('es-AR')} c/u
+                    </Text>
+                  )}
+                </Table.Td>
                 <Table.Td>
                   <Stack gap={2}>
                     <Badge color={STATUS_COLOR[displayStatus]} variant="light">

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Badge, Button, Chip, Group, Loader, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Badge, Button, Chip, Group, Loader, NumberInput, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useAuth } from '../../contexts/AuthContext';
 import { createSalesForUsers, getActiveProducts } from '../../services/clubSalesAdminService';
@@ -15,6 +15,7 @@ export function VenderProducto() {
   const [products, setProducts] = useState<ClubProductRow[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ClubProductRow | null>(null);
+  const [cantidad, setCantidad] = useState<number>(1);
 
   const [userSearch, setUserSearch] = useState('');
   const [userResults, setUserResults] = useState<User[]>([]);
@@ -57,6 +58,10 @@ export function VenderProducto() {
       notifications.show({ color: 'red', title: 'Elegí un producto', message: 'Seleccioná un producto del catálogo.' });
       return;
     }
+    if (!Number.isInteger(cantidad) || cantidad < 1) {
+      notifications.show({ color: 'red', title: 'Cantidad inválida', message: 'La cantidad debe ser un entero mayor o igual a 1.' });
+      return;
+    }
     if (selectedUsers.size === 0) {
       notifications.show({ color: 'red', title: 'Sin jugadores', message: 'Seleccioná al menos un jugador.' });
       return;
@@ -67,6 +72,7 @@ export function VenderProducto() {
     const { error } = await createSalesForUsers(
       selectedProduct,
       Array.from(selectedUsers.keys()),
+      cantidad,
       profile.club_id ?? null,
       profile.id
     );
@@ -77,7 +83,10 @@ export function VenderProducto() {
       return;
     }
 
-    notifications.show({ color: 'green', message: `Se cargó "${selectedProduct.nombre}" a ${selectedUsers.size} jugador(es).` });
+    notifications.show({
+      color: 'green',
+      message: `Se cargó "${selectedProduct.nombre}"${cantidad > 1 ? ` ×${cantidad}` : ''} a ${selectedUsers.size} jugador(es).`,
+    });
     navigate('/ventas');
   }
 
@@ -108,7 +117,25 @@ export function VenderProducto() {
       )}
 
       <Text fw={600} mt="md">
-        2. Seleccioná los jugadores
+        2. Elegí la cantidad
+      </Text>
+      <NumberInput
+        value={cantidad}
+        onChange={(v) => setCantidad(typeof v === 'number' && v >= 1 ? Math.floor(v) : 1)}
+        min={1}
+        step={1}
+        allowDecimal={false}
+        clampBehavior="strict"
+        w={140}
+      />
+      {selectedProduct && cantidad > 1 && (
+        <Text size="sm" c="dimmed">
+          ${selectedProduct.precio.toLocaleString('es-AR')} c/u · Total ${(selectedProduct.precio * cantidad).toLocaleString('es-AR')} por jugador
+        </Text>
+      )}
+
+      <Text fw={600} mt="md">
+        3. Seleccioná los jugadores
       </Text>
 
       {selectedList.length > 0 && (
@@ -145,8 +172,13 @@ export function VenderProducto() {
         })}
       </Stack>
 
-      <Button mt="md" loading={submitting} onClick={handleSubmit} disabled={!selectedProduct || selectedUsers.size === 0}>
-        Cargar venta a {selectedUsers.size} jugador{selectedUsers.size === 1 ? '' : 'es'}
+      <Button
+        mt="md"
+        loading={submitting}
+        onClick={handleSubmit}
+        disabled={!selectedProduct || cantidad < 1 || selectedUsers.size === 0}
+      >
+        Cargar venta{cantidad > 1 ? ` de ${cantidad}×` : ''} a {selectedUsers.size} jugador{selectedUsers.size === 1 ? '' : 'es'}
       </Button>
     </Stack>
   );

@@ -55,17 +55,23 @@ export async function setProductActive(productId: string, activo: boolean): Prom
 export async function createSalesForUsers(
   product: ClubProductRow,
   userIds: string[],
+  cantidad: number,
   clubId: string | null,
   createdBy: string
 ): Promise<ServiceResult<ClubSaleRow[]>> {
   if (userIds.length === 0) return { data: [], error: null };
+  if (!Number.isInteger(cantidad) || cantidad < 1) {
+    return { data: null, error: 'La cantidad debe ser un número entero mayor o igual a 1.' };
+  }
 
   const rows = userIds.map((user_id) => ({
     club_id: clubId,
     product_id: product.id,
     user_id,
     producto_nombre: product.nombre,
-    precio: product.precio,
+    cantidad,
+    precio_unitario: product.precio,
+    precio: product.precio * cantidad,
     metodo_pago: null,
     estado_pago: 'sin_pagar' as const,
     created_by: createdBy,

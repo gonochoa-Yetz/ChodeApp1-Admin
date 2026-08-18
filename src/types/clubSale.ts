@@ -18,6 +18,8 @@ export interface ClubSaleRow {
   user_id: string;
   producto_nombre: string;
   precio: number;
+  cantidad: number;
+  precio_unitario: number;
   metodo_pago: 'transferencia' | 'efectivo' | null;
   estado_pago: ClubSalePaymentStatus;
   comprobante_url: string | null;
