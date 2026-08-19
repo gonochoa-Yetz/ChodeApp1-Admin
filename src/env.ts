@@ -6,3 +6,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     'Faltan VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Copiá .env.example a .env y completá los valores.'
   );
 }
+
+// Opcional: sin este valor, initSentry() (src/lib/sentry.ts) no hace nada.
+export const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
